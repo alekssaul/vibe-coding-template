@@ -2,11 +2,11 @@ package handler
 
 import (
 	"database/sql"
-	"encoding/json"
 	"net/http"
 	"strconv"
 
 	"github.com/alekssaul/template/internal/model"
+	"github.com/alekssaul/template/internal/request"
 	"github.com/alekssaul/template/internal/response"
 )
 
@@ -82,12 +82,8 @@ func (h *Handler) GetItem(w http.ResponseWriter, r *http.Request) {
 //	@Router			/v1/items [post]
 func (h *Handler) CreateItem(w http.ResponseWriter, r *http.Request) {
 	var req model.CreateItemRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.WriteError(w, http.StatusBadRequest, "invalid request body", "BAD_REQUEST")
-		return
-	}
-	if req.Name == "" {
-		response.WriteError(w, http.StatusBadRequest, "name is required", "VALIDATION_ERROR")
+	if err := request.DecodeJSON(r, &req); err != nil {
+		response.WriteError(w, http.StatusBadRequest, err.Error(), "VALIDATION_ERROR")
 		return
 	}
 	item, err := h.store.CreateItem(r.Context(), &req)
@@ -119,12 +115,8 @@ func (h *Handler) UpdateItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req model.UpdateItemRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.WriteError(w, http.StatusBadRequest, "invalid request body", "BAD_REQUEST")
-		return
-	}
-	if req.Name == "" {
-		response.WriteError(w, http.StatusBadRequest, "name is required", "VALIDATION_ERROR")
+	if err := request.DecodeJSON(r, &req); err != nil {
+		response.WriteError(w, http.StatusBadRequest, err.Error(), "VALIDATION_ERROR")
 		return
 	}
 	item, err := h.store.UpdateItem(r.Context(), id, &req)

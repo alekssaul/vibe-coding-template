@@ -21,8 +21,8 @@ type APIKey struct {
 
 // CreateAPIKeyRequest is the payload for creating an API key.
 type CreateAPIKeyRequest struct {
-	Name       string     `json:"name"`
-	Permission Permission `json:"permission"`
+	Name       string     `json:"name" validate:"required,min=2,max=100"`
+	Permission Permission `json:"permission" validate:"required,oneof=read write"`
 }
 
 // CreateAPIKeyResponse is returned only on key creation; Key is shown once.

@@ -2,11 +2,11 @@ package handler
 
 import (
 	"database/sql"
-	"encoding/json"
 	"net/http"
 	"strconv"
 
 	"github.com/alekssaul/template/internal/model"
+	"github.com/alekssaul/template/internal/request"
 	"github.com/alekssaul/template/internal/response"
 )
 
@@ -46,16 +46,8 @@ func (h *Handler) ListAPIKeys(w http.ResponseWriter, r *http.Request) {
 //	@Router			/v1/keys [post]
 func (h *Handler) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	var req model.CreateAPIKeyRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.WriteError(w, http.StatusBadRequest, "invalid request body", "BAD_REQUEST")
-		return
-	}
-	if req.Name == "" {
-		response.WriteError(w, http.StatusBadRequest, "name is required", "VALIDATION_ERROR")
-		return
-	}
-	if req.Permission != model.PermissionRead && req.Permission != model.PermissionWrite {
-		response.WriteError(w, http.StatusBadRequest, "permission must be 'read' or 'write'", "VALIDATION_ERROR")
+	if err := request.DecodeJSON(r, &req); err != nil {
+		response.WriteError(w, http.StatusBadRequest, err.Error(), "VALIDATION_ERROR")
 		return
 	}
 	resp, err := h.store.CreateAPIKey(r.Context(), &req)

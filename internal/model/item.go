@@ -13,12 +13,12 @@ type Item struct {
 
 // CreateItemRequest is the payload for creating an item.
 type CreateItemRequest struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	Name        string `json:"name" validate:"required,min=2,max=100"`
+	Description string `json:"description" validate:"max=500"`
 }
 
 // UpdateItemRequest is the payload for updating an item.
 type UpdateItemRequest struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	Name        string `json:"name" validate:"required,min=2,max=100"`
+	Description string `json:"description" validate:"max=500"`
 }
