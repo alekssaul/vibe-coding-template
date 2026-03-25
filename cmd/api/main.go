@@ -90,6 +90,8 @@ func main() {
 	mux.Handle("POST /v1/keys", apiKeyMW.RequireWrite(http.HandlerFunc(h.CreateAPIKey)))
 	mux.Handle("DELETE /v1/keys/{id}", apiKeyMW.RequireWrite(http.HandlerFunc(h.DeleteAPIKey)))
 
+	// scaffold:routes — DO NOT REMOVE THIS COMMENT (used by `make scaffold` for auto-registration)
+
 	// Global middleware chain: CORS → RequestID → mux
 	var root http.Handler = mux
 	root = middleware.RequestID(root)

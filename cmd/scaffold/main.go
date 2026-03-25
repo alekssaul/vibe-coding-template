@@ -116,30 +116,18 @@ func main() {
 	fmt.Println()
 	fmt.Println("🎉 Scaffold complete! Next steps:")
 	fmt.Printf("  1. Run: make db-generate\n")
-	fmt.Printf("  2. Register routes in cmd/api/main.go (see below)\n")
+	fmt.Printf("  2. Routes auto-injected into cmd/api/main.go ✅\n")
 	fmt.Printf("  3. Run: cd flutter_app && dart run build_runner build -d\n")
 	fmt.Printf("  4. Add the screen to flutter_app/lib/router/app_router.dart\n")
 	fmt.Printf("  5. Run: make verify\n")
-	fmt.Println()
-	fmt.Println("Route registration snippet for cmd/api/main.go:")
-	fmt.Printf(`
-	// %s — read
-	mux.Handle("GET /v1/%s", apiKeyMW.RequireRead(http.HandlerFunc(h.List%s)))
-	mux.Handle("GET /v1/%s/{id}", apiKeyMW.RequireRead(http.HandlerFunc(h.Get%s)))
 
-	// %s — write
-	mux.Handle("POST /v1/%s", apiKeyMW.RequireWrite(http.HandlerFunc(h.Create%s)))
-	mux.Handle("PUT /v1/%s/{id}", apiKeyMW.RequireWrite(http.HandlerFunc(h.Update%s)))
-	mux.Handle("DELETE /v1/%s/{id}", apiKeyMW.RequireWrite(http.HandlerFunc(h.Delete%s)))
-`,
-		data.ResourcePluralPascal,
-		data.ResourcePlural, data.ResourcePluralPascal,
-		data.ResourcePlural, data.Resource,
-		data.ResourcePluralPascal,
-		data.ResourcePlural, data.Resource,
-		data.ResourcePlural, data.Resource,
-		data.ResourcePlural, data.Resource,
-	)
+	if err := injectRoutes(data); err != nil {
+		fmt.Printf("⚠️  Could not auto-inject routes: %v\n", err)
+		fmt.Println("   Add these routes manually to cmd/api/main.go:")
+		printRouteSnippet(data)
+	} else {
+		fmt.Println("✅ Routes injected into cmd/api/main.go")
+	}
 }
 
 func renderTemplate(tmplStr, dest string, data TemplateData) error {
@@ -234,6 +222,71 @@ func nextMigrationNum() string {
 		}
 	}
 	return fmt.Sprintf("%06d", maxNum+1)
+}
+
+// ── Route Injection ──────────────────────────────────────────────────────────
+
+const routeMarker = "// scaffold:routes"
+const mainGoPath = "cmd/api/main.go"
+
+// injectRoutes inserts 5 route registrations into cmd/api/main.go just before
+// the scaffold:routes marker comment. Safe to call multiple times (idempotent guard).
+func injectRoutes(data TemplateData) error {
+	raw, err := os.ReadFile(mainGoPath)
+	if err != nil {
+		return fmt.Errorf("read %s: %w", mainGoPath, err)
+	}
+
+	snippet := fmt.Sprintf(
+		"\t// %s — read\n"+
+			"\tmux.Handle(\"GET /v1/%s\", apiKeyMW.RequireRead(http.HandlerFunc(h.List%s)))\n"+
+			"\tmux.Handle(\"GET /v1/%s/{id}\", apiKeyMW.RequireRead(http.HandlerFunc(h.Get%s)))\n\n"+
+			"\t// %s — write\n"+
+			"\tmux.Handle(\"POST /v1/%s\", apiKeyMW.RequireWrite(http.HandlerFunc(h.Create%s)))\n"+
+			"\tmux.Handle(\"PUT /v1/%s/{id}\", apiKeyMW.RequireWrite(http.HandlerFunc(h.Update%s)))\n"+
+			"\tmux.Handle(\"DELETE /v1/%s/{id}\", apiKeyMW.RequireWrite(http.HandlerFunc(h.Delete%s)))\n\n",
+		data.ResourcePluralPascal,
+		data.ResourcePlural, data.ResourcePluralPascal,
+		data.ResourcePlural, data.Resource,
+		data.ResourcePluralPascal,
+		data.ResourcePlural, data.Resource,
+		data.ResourcePlural, data.Resource,
+		data.ResourcePlural, data.Resource,
+	)
+
+	content := string(raw)
+	// Idempotency: skip if already injected.
+	if strings.Contains(content, "h.List"+data.ResourcePluralPascal) {
+		return nil
+	}
+	if !strings.Contains(content, routeMarker) {
+		return fmt.Errorf("marker %q not found in %s", routeMarker, mainGoPath)
+	}
+
+	updated := strings.Replace(content, "\t"+routeMarker, snippet+"\t"+routeMarker, 1)
+	return os.WriteFile(mainGoPath, []byte(updated), 0o644)
+}
+
+// printRouteSnippet is the fallback — prints routes to stdout when auto-injection fails.
+func printRouteSnippet(data TemplateData) {
+	fmt.Printf(`
+	// %s — read
+	mux.Handle("GET /v1/%s", apiKeyMW.RequireRead(http.HandlerFunc(h.List%s)))
+	mux.Handle("GET /v1/%s/{id}", apiKeyMW.RequireRead(http.HandlerFunc(h.Get%s)))
+
+	// %s — write
+	mux.Handle("POST /v1/%s", apiKeyMW.RequireWrite(http.HandlerFunc(h.Create%s)))
+	mux.Handle("PUT /v1/%s/{id}", apiKeyMW.RequireWrite(http.HandlerFunc(h.Update%s)))
+	mux.Handle("DELETE /v1/%s/{id}", apiKeyMW.RequireWrite(http.HandlerFunc(h.Delete%s)))
+`,
+		data.ResourcePluralPascal,
+		data.ResourcePlural, data.ResourcePluralPascal,
+		data.ResourcePlural, data.Resource,
+		data.ResourcePluralPascal,
+		data.ResourcePlural, data.Resource,
+		data.ResourcePlural, data.Resource,
+		data.ResourcePlural, data.Resource,
+	)
 }
 
 // ── Go Templates ─────────────────────────────────────────────────────────────

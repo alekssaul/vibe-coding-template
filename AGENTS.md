@@ -62,8 +62,10 @@ Do not declare a task complete until these pass.
 | `make init PROJECT=myapp` | Rename template module |
 | `make db-generate` | Generate sqlc Go code from SQL queries |
 | `make migrate-add NAME=your_migration` | Create new golang-migrate migration files |
-| `make scaffold RESOURCE=name FIELDS="f:type,..."` | Generate full-stack CRUD (9 files) |
+| `make scaffold RESOURCE=name FIELDS="f:type,..."` | Generate full-stack CRUD (9 files) + auto-inject routes |
 | `make seed` | Seed database with dummy data and dev API keys |
+
+> **Scaffold rule**: Never manually write Go model/handler/store/SQL/Flutter model/provider/screen for a new CRUD resource. Always run `make scaffold` first. Only deviate when the resource has non-standard patterns.
 
 ## API Conventions
 
@@ -119,10 +121,7 @@ make db-generate
 cd flutter_app && dart run build_runner build -d && cd ..
 ```
 
-Then manually:
-1. Register routes in `cmd/api/main.go` (the scaffold prints the snippet).
-2. Add the screen to `flutter_app/lib/router/app_router.dart`.
-3. Run `make verify`.
+Routes are **automatically injected** into `cmd/api/main.go` at the `// scaffold:routes` marker. The only remaining manual step is adding the new screen to `flutter_app/lib/router/app_router.dart`.
 
 Supported field types: `string`, `int`, `float`, `bool`. Every resource automatically gets `name` and `description` fields plus `id`, `created_at`, `updated_at`.
 
