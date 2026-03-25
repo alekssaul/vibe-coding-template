@@ -31,8 +31,13 @@ run: build ## Build and run the API server
 	./$(BIN_DIR)/$(BINARY)
 
 .PHONY: dev
-dev: ## Run without building a binary (hot-suitable for development)
-	go run $(LDFLAGS) ./cmd/api
+dev: ## Hot-reload backend via air
+	air
+
+.PHONY: migrate-add
+migrate-add: ## Create a new SQL migration: make migrate-add NAME=create_users
+	@if [ -z "$(NAME)" ]; then echo "Usage: make migrate-add NAME=something"; exit 1; fi
+	migrate create -ext sql -dir internal/store/migrations -seq $(NAME)
 
 .PHONY: test
 test: ## Run all tests

@@ -21,8 +21,9 @@ A CRUD application template with:
 │   ├── middleware/        # CORS, RequestID, API key auth
 │   ├── model/            # Domain types (Item, APIKey, etc.)
 │   ├── response/         # HTTP response helpers (WriteJSON, WriteError, WriteList)
-│   └── store/            # SQLite data layer (migrations, items, apikeys)
-├── flutter_app/          # Flutter frontend (Riverpod, flutter_dotenv)
+│   └── store/            # SQLite data layer (items, apikeys)
+│       └── migrations/   # golang-migrate .sql up/down files (embedded)
+├── flutter_app/          # Flutter frontend (Riverpod, flutter_dotenv, go_router)
 ├── docs/                 # Generated OpenAPI/Swagger (gitignored — run `make docs`)
 ├── Makefile
 ├── .env.example
@@ -46,7 +47,7 @@ Do not declare a task complete until these pass.
 | Command | Description |
 |---|---|
 | `make build` | Build Go binary with git SHA |
-| `make dev` | Run backend without building |
+| `make dev` | Run backend with hot-reload (`air`) |
 | `make test` | Run Go tests |
 | `make verify` | Full verification (Go + tests + Flutter analyze) |
 | `make docs` | Regenerate OpenAPI docs |
@@ -85,6 +86,9 @@ Do not declare a task complete until these pass.
 ## Flutter Conventions
 
 - State management: Riverpod (`flutter_riverpod`)
+- Routing: `go_router` (configured in `lib/router/app_router.dart`)
+- Design System: Use `AppTheme` (in `lib/theme/app_theme.dart`) for standard spacing and colors.
+- Forms: Use `flutter_form_builder` for complex inputs
 - API base URL: loaded from `.env` via `flutter_dotenv` as `API_BASE_URL`
 - API key: loaded from `.env` as `API_KEY`
 - All API calls via `lib/services/api_client.dart`
@@ -98,8 +102,9 @@ Key vars: `API_PORT` (default 8080), `DB_PATH` (default data.db), `CORS_ORIGINS`
 ## Adding a New Resource
 
 1. Add model to `internal/model/<resource>.go`
-2. Add store methods to `internal/store/<resource>.go`
-3. Add handlers to `internal/handler/<resource>.go` with swaggo annotations
+2. Generate migration: `make migrate-add NAME=create_<resource>` and write the `.sql` files 
+3. Add store methods to `internal/store/<resource>.go`
+4. Add handlers to `internal/handler/<resource>.go` with swaggo annotations
 4. Register routes in `cmd/api/main.go`
 5. Add Flutter model, provider, and screen
 6. Run `make verify` before closing the task

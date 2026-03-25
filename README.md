@@ -7,9 +7,9 @@ A production-ready CRUD application template using **Go** (backend API) + **Flut
 | Layer | Technology |
 |---|---|
 | API | Go 1.25 · `net/http` · JSON logs (`log/slog`) |
-| Database | SQLite via `modernc.org/sqlite` (pure Go, no CGO) |
+| Database | SQLite via `modernc.org/sqlite` with `golang-migrate` embedded migrations |
 | Auth | API key (`X-API-Key` header, read/write permissions) |
-| Frontend | Flutter 3.41.4 · Riverpod · flutter_dotenv |
+| Frontend | Flutter 3.41.4 · Riverpod · `go_router` · `flutter_dotenv` |
 | OpenAPI | swaggo auto-generated from annotations |
 
 ## Quick Start
@@ -24,7 +24,7 @@ make install-tools
 # 3. Generate OpenAPI docs
 make docs
 
-# 4. Run backend (prints default API key on first run)
+# 4. Run backend with hot-reload (prints default API key on first run)
 make dev
 
 # 5. In another terminal — run Flutter web
@@ -49,6 +49,8 @@ Copy `.env.example` → `.env` and edit:
 | `DB_PATH` | `data.db` | SQLite database file path |
 | `ENV` | `development` | Runtime environment label |
 | `CORS_ORIGINS` | `*` | Comma-separated allowed CORS origins |
+
+Other environment templates exist: `.env.staging` and `.env.production`. They are safe to commit and copy over to `.env` depending on the deployed environment.
 
 ## API Reference
 
@@ -97,7 +99,8 @@ List endpoints accept `?limit=20&offset=0` (max limit: 100).
 
 ```bash
 make build             # Build Go binary (embeds git SHA + build time)
-make dev               # Run without building (development)
+make dev               # Hot-reload backend via air
+make migrate-add NAME=foo # Creates a new golang-migrate .sql up/down template
 make test              # Run Go tests
 make lint              # Run golangci-lint
 make fmt               # Format Go code
