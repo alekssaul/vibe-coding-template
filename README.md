@@ -75,13 +75,14 @@ Before asking your AI to write code, tell it to read `AGENTS.md`. It contains st
 | Command | Description |
 |---|---|
 | `make dev` | Start backend with `air` hot-reloader |
-| `make db-generate` | Regenerate Go types natively from `internal/store/queries/` |
+| `make db-generate` | Regenerate Go types from `internal/store/queries/` |
 | `make seed` | Auto-migrate and seed dummy data and API keys |
+| `make scaffold RESOURCE=... FIELDS=...` | Generate full-stack CRUD (9 files) |
 | `make verify` | Run Go build, Go tests, and Flutter analyzer |
 | `make test` | Run Go unit/integration tests |
 | `make init PROJECT=` | Rename the template across all files |
-| `make migrate-add NAME=` | Scaffolds a new `.sql` migration file |
-| `make docs` | Generate Swagger/OpenAPI docs via `swago` |
+| `make migrate-add NAME=` | Scaffold a new `.sql` migration file |
+| `make docs` | Generate Swagger/OpenAPI docs via `swag` |
 
 ## License
 

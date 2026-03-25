@@ -38,6 +38,11 @@ dev: ## Hot-reload backend via air
 seed: ## Seed the database with dummy data and dev API keys
 	go run ./cmd/seed
 
+.PHONY: scaffold
+scaffold: ## Scaffold a new CRUD resource: make scaffold RESOURCE=product FIELDS="price:float,active:bool"
+	@if [ -z "$(RESOURCE)" ]; then echo "Usage: make scaffold RESOURCE=name FIELDS=\"field1:type,field2:type\""; exit 1; fi
+	go run ./cmd/scaffold RESOURCE=$(RESOURCE) FIELDS="$(FIELDS)"
+
 .PHONY: migrate-add
 migrate-add: ## Create a new SQL migration: make migrate-add NAME=create_users
 	@if [ -z "$(NAME)" ]; then echo "Usage: make migrate-add NAME=something"; exit 1; fi

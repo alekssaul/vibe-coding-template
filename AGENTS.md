@@ -62,6 +62,8 @@ Do not declare a task complete until these pass.
 | `make init PROJECT=myapp` | Rename template module |
 | `make db-generate` | Generate sqlc Go code from SQL queries |
 | `make migrate-add NAME=your_migration` | Create new golang-migrate migration files |
+| `make scaffold RESOURCE=name FIELDS="f:type,..."` | Generate full-stack CRUD (9 files) |
+| `make seed` | Seed database with dummy data and dev API keys |
 
 ## API Conventions
 
@@ -109,27 +111,27 @@ Key vars: `API_PORT` (default 8080), `DB_PATH` (default data.db), `CORS_ORIGINS`
 
 ## Adding a New Resource
 
-### 1. Database (`sqlc` + `golang-migrate`)
-1. Create a new SQL migration in `internal/store/migrations/`: `make migrate-add NAME=your_table`.
-2. Define the schema `CREATE TABLE` / `DROP TABLE` in the `.up.sql` and `.down.sql` files.
-3. Create a query file in `internal/store/queries/your_model.sql` with `-- name: YourQuery :one` etc.
-4. Run `make db-generate` to generate the type-safe Go bindings in `internal/store/db/`.
-5. Create `internal/store/your_model.go` to wrap the `s.queries` calls and map to `model.YourModel`.
+### Quick Path (Recommended — use the scaffold generator)
 
-### 2. Model (`internal/model/`)
-1. Add model to `internal/model/<resource>.go`
+```bash
+make scaffold RESOURCE=product FIELDS="price:float,active:bool"
+make db-generate
+cd flutter_app && dart run build_runner build -d && cd ..
+```
 
-### 3. Handlers (`internal/handler/`)
-1. Add handlers to `internal/handler/<resource>.go` with swaggo annotations
+Then manually:
+1. Register routes in `cmd/api/main.go` (the scaffold prints the snippet).
+2. Add the screen to `flutter_app/lib/router/app_router.dart`.
+3. Run `make verify`.
 
-### 4. Routing (`cmd/api/`)
-1. Register routes in `cmd/api/main.go`
+Supported field types: `string`, `int`, `float`, `bool`. Every resource automatically gets `name` and `description` fields plus `id`, `created_at`, `updated_at`.
 
-### 5. Flutter UI (`flutter_app/`)
-1. Create a `lib/models/` file matching the Go JSON outputs using `.fromJson()`.
-2. Create a `lib/providers/` file utilizing `@riverpod` and `riverpod_generator`. Run `dart run build_runner build -d` to generate the `.g.dart` file. Use `ApiClient.instance` within the provider instead of dependency injection. Handle mutation errors by catching them and using `SnackBarUtil.showError(e.toString())`.
-3. Create the UI in `lib/screens/`. Hook up state with `ref.watch(yourProvider)`. Leverage `ErrorStateWidget` for the `error` state of `AsyncValue`.
-4. Link the new screen in `lib/router/app_router.dart`.
+### Manual Path (for custom patterns)
 
-### 6. Verification
-1. Run `make verify` before closing the task
+1. **Database:** Create migration (`make migrate-add NAME=...`), write `.sql` queries in `internal/store/queries/`, run `make db-generate`.
+2. **Model:** Add struct to `internal/model/<resource>.go` with `validate` tags.
+3. **Store:** Wrap sqlc calls in `internal/store/<resource>.go`.
+4. **Handler:** Add CRUD handlers in `internal/handler/<resource>.go` with swaggo annotations.
+5. **Routes:** Register in `cmd/api/main.go`.
+6. **Flutter:** Create model, `@riverpod` provider (use `ApiClient.instance`), and screen. Run `dart run build_runner build -d`.
+7. **Verify:** Run `make verify`.
