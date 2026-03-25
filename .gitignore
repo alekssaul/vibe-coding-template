@@ -1,0 +1,44 @@
+# Binaries
+bin/
+*.exe
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment secrets — NEVER commit .env
+.env
+
+# Go test cache
+*.test
+*.out
+cover.html
+
+# Dependency lock — keep go.sum but not vendor
+vendor/
+
+# IDE
+.idea/
+*.swp
+*.swo
+# Keep .vscode/launch.json and settings.json — useful for all devs on this template
+
+# macOS
+.DS_Store
+
+# Flutter
+flutter_app/.dart_tool/
+flutter_app/build/
+flutter_app/.flutter-plugins
+flutter_app/.flutter-plugins-dependencies
+flutter_app/.packages
+flutter_app/.pub-cache/
+flutter_app/.pub/
+flutter_app/pubspec.lock
+flutter_app/.env
+
+# Generated OpenAPI swagger files (regenerate with `make docs`)
+# docs/docs.go stub IS committed so the project compiles before first `make docs`
+docs/swagger.json
+docs/swagger.yaml
