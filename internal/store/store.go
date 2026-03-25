@@ -3,26 +3,31 @@ package store
 import (
 	"database/sql"
 
+	"github.com/alekssaul/template/internal/store/db"
 	_ "modernc.org/sqlite"
 )
 
-// Store wraps the SQLite database connection.
+// Store wraps the SQLite database connection and sqlc queries.
 type Store struct {
-	db *sql.DB
+	db      *sql.DB
+	queries *db.Queries
 }
 
 // New opens the SQLite database, runs migrations, and returns a Store.
 func New(dbPath string) (*Store, error) {
-	db, err := sql.Open("sqlite", dbPath)
+	sqlDb, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		return nil, err
 	}
 	// SQLite is single-writer; cap to 1 open connection to avoid locking errors.
-	db.SetMaxOpenConns(1)
+	sqlDb.SetMaxOpenConns(1)
 
-	s := &Store{db: db}
+	s := &Store{
+		db:      sqlDb,
+		queries: db.New(sqlDb),
+	}
 	if err := s.migrate(); err != nil {
-		db.Close()
+		sqlDb.Close()
 		return nil, err
 	}
 	return s, nil

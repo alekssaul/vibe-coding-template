@@ -1,39 +1,58 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_app/models/item.dart';
-import 'package:flutter_app/services/api_client.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../models/item.dart';
+import '../services/api_client.dart';
+import '../core/utils/snackbar_util.dart';
 
-/// Provider exposing the current paginated list of items.
-final itemsProvider = AsyncNotifierProvider<ItemsNotifier, ListResponse<Item>>(
-  ItemsNotifier.new,
-);
+part 'items_provider.g.dart';
 
-class ItemsNotifier extends AsyncNotifier<ListResponse<Item>> {
-  final _repo = ItemsRepository.instance;
-
+@riverpod
+class Items extends _$Items {
   @override
-  Future<ListResponse<Item>> build() => _repo.listItems();
-
-  Future<void> refresh() async {
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() => _repo.listItems());
+  FutureOr<List<Item>> build() async {
+    final client = ApiClient.instance;
+    final response = await client.get('/v1/items');
+    final itemsList = (response['data'] as List)
+        .map((json) => Item.fromJson(json))
+        .toList();
+    return itemsList;
   }
 
-  Future<void> create({required String name, String description = ''}) async {
-    await _repo.createItem(name: name, description: description);
-    await refresh();
+  Future<void> createItem(String name, String description) async {
+    final client = ApiClient.instance;
+    try {
+      await client.post('/v1/items', {
+        'name': name,
+        'description': description,
+      });
+      ref.invalidateSelf();
+      SnackBarUtil.showSuccess('Item created');
+    } catch (e) {
+      SnackBarUtil.showError(e.toString());
+    }
   }
 
-  Future<void> updateItem(
-    int id, {
-    required String name,
-    String description = '',
-  }) async {
-    await _repo.updateItem(id, name: name, description: description);
-    await refresh();
+  Future<void> updateItem(int id, String name, String description) async {
+    final client = ApiClient.instance;
+    try {
+      await client.put('/v1/items/$id', {
+        'name': name,
+        'description': description,
+      });
+      ref.invalidateSelf();
+      SnackBarUtil.showSuccess('Item updated');
+    } catch (e) {
+      SnackBarUtil.showError(e.toString());
+    }
   }
 
-  Future<void> delete(int id) async {
-    await _repo.deleteItem(id);
-    await refresh();
+  Future<void> deleteItem(int id) async {
+    final client = ApiClient.instance;
+    try {
+      await client.delete('/v1/items/$id');
+      ref.invalidateSelf();
+      SnackBarUtil.showSuccess('Item deleted');
+    } catch (e) {
+      SnackBarUtil.showError(e.toString());
+    }
   }
 }

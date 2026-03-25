@@ -1,135 +1,88 @@
-# Template
+# Vibe Coding Template (Go + Flutter)
 
-A production-ready CRUD application template using **Go** (backend API) + **Flutter** (frontend) + **SQLite** (database).
+A lightning-fast, production-ready full-stack template optimized for AI agents (Cursor, Copilot, Claude). Builds an instant backend API with typed SQLite, paired with a robust Flutter web/mobile interface.
 
-## Stack
+## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| API | Go 1.25 · `net/http` · JSON logs (`log/slog`) |
-| Database | SQLite via `modernc.org/sqlite` with `golang-migrate` embedded migrations |
-| Auth | API key (`X-API-Key` header, read/write permissions) |
-| Frontend | Flutter 3.41.4 · Riverpod · `go_router` · `flutter_dotenv` |
-| OpenAPI | swaggo auto-generated from annotations |
+- **Backend:** Go 1.25+, pure Go SQLite (`modernc.org/sqlite`), `sqlc` for type-safe code generation, `golang-migrate`
+- **Frontend:** Flutter 3.41+, `go_router`, `riverpod` + `riverpod_generator`, Material 3 design system with manual light/dark themes
+- **Auth:** Static, SHA-256 hashed API Keys stored in SQLite with middleware validation
+- **Dev-Ex:** Built-in `Makefile` automation, `air` for hot-reloading, `golangci-lint`, VSCode compound debug templates
+- **API Spec:** Automatic OpenAPI (Swagger) generation via `swag`
 
 ## Quick Start
 
+### 1. Clone & Environment
 ```bash
-# 1. Clone and copy env
+git clone https://github.com/alekssaul/vibe-coding-template.git
+cd vibe-coding-template
+```
+
+Copy the environment files for local development:
+```bash
 cp .env.example .env
+cp flutter_app/.env.example flutter_app/.env
+```
 
-# 2. Install Go tools
+### 2. Rename & Initialize (Optional but recommended)
+Run the initialization script. This will rename the go module, the flutter package, and update text references automatically.
+```bash
+make init PROJECT=your_new_app_name
+```
+
+### 3. Install Tools & Generate Code
+Install all required CLI tools (`air`, `migrate`, `sqlc`, `swag`) and generate database + Flutter code:
+```bash
 make install-tools
+make db-generate
+cd flutter_app && dart run build_runner build -d
+cd ..
+```
 
-# 3. Generate OpenAPI docs
-make docs
+### 4. Seed the Database
+Seed the database with dummy Items and developer API keys (prints the plaintext keys you need for Flutter):
+```bash
+make seed
+```
 
-# 4. Run backend with hot-reload (prints default API key on first run)
+> **Important**: Copy one of the seeded API keys into your `flutter_app/.env` (`API_KEY=...`) to allow the mobile app to hit the backend.
+
+### 5. Run the Stack
+
+Run the backend API (with hot-reloading via `air`):
+```bash
 make dev
-
-# 5. In another terminal — run Flutter web
-make flutter-run-web
 ```
 
-## Initial Setup (rename from template)
-
+In another terminal — run the Flutter frontend:
 ```bash
-make init PROJECT=myapp
+cd flutter_app
+flutter run -d chrome
 ```
 
-This replaces `alekssaul/template` → `alekssaul/myapp` across all Go files and re-runs `go mod tidy`.
+## AI Agent Integration (`AGENTS.md`)
 
-## Environment Variables
+This repository is strictly designed for **Context-Driven Development (CDD)** with AI agents.
 
-Copy `.env.example` → `.env` and edit:
+Before asking your AI to write code, tell it to read `AGENTS.md`. It contains strict rules for:
+- How to write new `sqlc` queries and migrations.
+- Which libraries to use (e.g., `riverpod_generator`).
+- How to structure handlers, models, and UI screens.
+- Pre-commit verifications (always ask the AI to run `make verify` before concluding a task).
 
-| Variable | Default | Description |
-|---|---|---|
-| `API_PORT` | `8080` | Port the Go API listens on |
-| `DB_PATH` | `data.db` | SQLite database file path |
-| `ENV` | `development` | Runtime environment label |
-| `CORS_ORIGINS` | `*` | Comma-separated allowed CORS origins |
+## Scripts & Tools
 
-Other environment templates exist: `.env.staging` and `.env.production`. They are safe to commit and copy over to `.env` depending on the deployed environment.
+| Command | Description |
+|---|---|
+| `make dev` | Start backend with `air` hot-reloader |
+| `make db-generate` | Regenerate Go types natively from `internal/store/queries/` |
+| `make seed` | Auto-migrate and seed dummy data and API keys |
+| `make verify` | Run Go build, Go tests, and Flutter analyzer |
+| `make test` | Run Go unit/integration tests |
+| `make init PROJECT=` | Rename the template across all files |
+| `make migrate-add NAME=` | Scaffolds a new `.sql` migration file |
+| `make docs` | Generate Swagger/OpenAPI docs via `swago` |
 
-## API Reference
+## License
 
-### Authentication
-
-Pass `X-API-Key: <key>` on all `/v1/` requests.
-
-- **Read key**: access to `GET` endpoints
-- **Write key**: access to all endpoints
-
-On first run, a default **write** key is printed to stdout — save it immediately.
-
-### Endpoints
-
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| `GET` | `/health` | None | Health check + version |
-| `GET` | `/docs/` | None | Swagger UI |
-| `GET` | `/v1/items` | Read | List items (paginated) |
-| `GET` | `/v1/items/{id}` | Read | Get item by ID |
-| `POST` | `/v1/items` | Write | Create item |
-| `PUT` | `/v1/items/{id}` | Write | Update item |
-| `DELETE` | `/v1/items/{id}` | Write | Delete item |
-| `GET` | `/v1/keys` | Write | List API keys |
-| `POST` | `/v1/keys` | Write | Create API key |
-| `DELETE` | `/v1/keys/{id}` | Write | Delete API key |
-
-### Pagination
-
-List endpoints accept `?limit=20&offset=0` (max limit: 100).
-
-### Response Format
-
-```json
-// Single item
-{ "data": { "id": 1, "name": "...", "description": "..." } }
-
-// List
-{ "data": [...], "total": 42, "limit": 20, "offset": 0 }
-
-// Error
-{ "error": "item not found", "code": "NOT_FOUND" }
-```
-
-## Make Targets
-
-```bash
-make build             # Build Go binary (embeds git SHA + build time)
-make dev               # Hot-reload backend via air
-make migrate-add NAME=foo # Creates a new golang-migrate .sql up/down template
-make test              # Run Go tests
-make lint              # Run golangci-lint
-make fmt               # Format Go code
-make docs              # Regenerate OpenAPI docs
-make verify            # Full check: Go build + tests + Flutter analyze
-make flutter-run-web   # Run Flutter app in Chrome
-make flutter-build-web # Build Flutter for web
-make install-tools     # Install swag + golangci-lint
-make init PROJECT=foo  # Rename module from template to foo
-```
-
-## Project Structure
-
-```
-├── cmd/api/              # main.go + tests
-├── internal/
-│   ├── config/           # Config from env
-│   ├── handler/          # HTTP handlers
-│   ├── middleware/        # CORS, RequestID, API key auth
-│   ├── model/            # Domain types
-│   ├── response/         # HTTP response helpers
-│   └── store/            # SQLite data layer
-├── flutter_app/          # Flutter frontend
-├── Makefile
-├── .env.example
-├── AGENTS.md             # AI agent context and conventions
-└── README.md
-```
-
-## Adding a New Resource
-
-See [`AGENTS.md`](./AGENTS.md) for the step-by-step guide.
+MIT

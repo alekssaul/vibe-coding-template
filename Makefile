@@ -34,6 +34,10 @@ run: build ## Build and run the API server
 dev: ## Hot-reload backend via air
 	air
 
+.PHONY: seed
+seed: ## Seed the database with dummy data and dev API keys
+	go run ./cmd/seed
+
 .PHONY: migrate-add
 migrate-add: ## Create a new SQL migration: make migrate-add NAME=create_users
 	@if [ -z "$(NAME)" ]; then echo "Usage: make migrate-add NAME=something"; exit 1; fi
@@ -58,6 +62,10 @@ fmt: ## Format Go source files
 .PHONY: docs
 docs: ## Generate OpenAPI docs via swag
 	swag init -g cmd/api/main.go -o docs/
+
+.PHONY: db-generate
+db-generate: ## Generate Go code from SQL files via sqlc
+	sqlc generate
 
 .PHONY: verify-go
 verify-go: ## Verify Go code compiles (run after every Go change)
@@ -101,11 +109,12 @@ verify: verify-go test flutter-analyze ## Run all verifications (Go build + test
 # ── Setup ─────────────────────────────────────────────────────────────────────
 
 .PHONY: install-tools
-install-tools: ## Install required Go CLI tools (swag, golangci-lint, migrate, air)
+install-tools: ## Install required Go CLI tools (swag, golangci-lint, migrate, air, sqlc)
 	go install github.com/swaggo/swag/cmd/swag@latest
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	go install -tags 'sqlite3' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 	go install github.com/air-verse/air@latest
+	go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
 
 .PHONY: init
 init: ## Rename template to your project: make init PROJECT=myapp

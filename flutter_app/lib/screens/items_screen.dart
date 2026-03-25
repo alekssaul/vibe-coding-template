@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_app/models/item.dart';
-import 'package:flutter_app/providers/items_provider.dart';
+
+import '../providers/items_provider.dart';
+import '../models/item.dart';
+import '../core/widgets/error_state_widget.dart';
 
 /// Main items list screen with inline create/edit/delete.
 class ItemsScreen extends ConsumerWidget {
@@ -9,27 +11,60 @@ class ItemsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(itemsProvider);
+    final itemsState = ref.watch(itemsProvider);
+
+    void refreshItems() {
+      ref.invalidate(itemsProvider);
+    }
+
+    void deleteItem(int id) async {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Delete Item'),
+          content: const Text('Are you sure you want to delete this item?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+                foregroundColor: Theme.of(context).colorScheme.onError,
+              ),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Delete'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm == true) {
+        await ref.read(itemsProvider.notifier).deleteItem(id);
+      }
+    }
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Items'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => ref.read(itemsProvider.notifier).refresh(),
-          ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: refreshItems),
         ],
       ),
-      body: state.when(
+      body: itemsState.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('Error: $err')),
-        data: (res) => res.data.isEmpty
+        error: (err, _) => ErrorStateWidget(error: err, onRetry: refreshItems),
+        data: (items) => items.isEmpty
             ? const Center(child: Text('No items yet. Create one!'))
             : ListView.separated(
-                itemCount: res.data.length,
+                itemCount: items.length,
                 separatorBuilder: (context, index) => const Divider(height: 1),
-                itemBuilder: (context, i) => _ItemTile(item: res.data[i]),
+                itemBuilder: (context, i) => _ItemTile(
+                  item: items[i],
+                  onEdit: (item) => _showItemDialog(context, ref, item),
+                  onDelete: deleteItem,
+                ),
               ),
       ),
       floatingActionButton: FloatingActionButton(
@@ -82,32 +117,28 @@ class ItemsScreen extends ConsumerWidget {
     if (confirmed != true || nameCtrl.text.trim().isEmpty) return;
 
     final notifier = ref.read(itemsProvider.notifier);
-    try {
-      if (item == null) {
-        await notifier.create(
-          name: nameCtrl.text.trim(),
-          description: descCtrl.text.trim(),
-        );
-      } else {
-        await notifier.updateItem(
-          item.id,
-          name: nameCtrl.text.trim(),
-          description: descCtrl.text.trim(),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
-      }
+    if (item == null) {
+      await notifier.createItem(nameCtrl.text.trim(), descCtrl.text.trim());
+    } else {
+      await notifier.updateItem(
+        item.id,
+        nameCtrl.text.trim(),
+        descCtrl.text.trim(),
+      );
     }
   }
 }
 
 class _ItemTile extends ConsumerWidget {
   final Item item;
-  const _ItemTile({required this.item});
+  final void Function(Item item) onEdit;
+  final void Function(int id) onDelete;
+
+  const _ItemTile({
+    required this.item,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -119,57 +150,15 @@ class _ItemTile extends ConsumerWidget {
         children: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),
-            onPressed: () => _ItemsScreenState.showEdit(context, ref, item),
+            onPressed: () => onEdit(item),
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
-            color: Colors.red,
-            onPressed: () async {
-              final ok = await showDialog<bool>(
-                context: context,
-                builder: (_) => AlertDialog(
-                  title: const Text('Delete item?'),
-                  content: Text(
-                    'Delete "${item.name}"? This cannot be undone.',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Cancel'),
-                    ),
-                    FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Colors.red,
-                      ),
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Delete'),
-                    ),
-                  ],
-                ),
-              );
-              if (ok == true && context.mounted) {
-                try {
-                  await ref.read(itemsProvider.notifier).delete(item.id);
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text(e.toString())));
-                  }
-                }
-              }
-            },
+            color: Theme.of(context).colorScheme.error,
+            onPressed: () => onDelete(item.id),
           ),
         ],
       ),
     );
-  }
-}
-
-// Static helper so _ItemTile can trigger the edit dialog.
-abstract class _ItemsScreenState {
-  static void showEdit(BuildContext context, WidgetRef ref, Item item) {
-    // Re-use ItemsScreen's dialog logic by instantiating and calling.
-    const ItemsScreen()._showItemDialog(context, ref, item);
   }
 }

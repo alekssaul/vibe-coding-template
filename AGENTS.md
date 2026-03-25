@@ -21,9 +21,15 @@ A CRUD application template with:
 │   ├── middleware/        # CORS, RequestID, API key auth
 │   ├── model/            # Domain types (Item, APIKey, etc.)
 │   ├── response/         # HTTP response helpers (WriteJSON, WriteError, WriteList)
-│   └── store/            # SQLite data layer (items, apikeys)
-│       └── migrations/   # golang-migrate .sql up/down files (embedded)
-├── flutter_app/          # Flutter frontend (Riverpod, flutter_dotenv, go_router)
+│   └── store/            # SQLite data layer (sqlc + golang-migrate)
+│       ├── db/           # Generated sqlc code
+│       ├── migrations/   # golang-migrate .sql up/down files (embedded)
+│       └── queries/      # sqlc .sql query files
+├── flutter_app/          # Flutter frontend
+│   ├── lib/
+│   │   ├── models/       # Data models (from Go JSON)
+│   │   ├── providers/    # Riverpod providers (using riverpod_generator)
+│   │   └── screens/      # UI screens
 ├── docs/                 # Generated OpenAPI/Swagger (gitignored — run `make docs`)
 ├── Makefile
 ├── .env.example
@@ -54,6 +60,8 @@ Do not declare a task complete until these pass.
 | `make flutter-analyze` | Lint Flutter/Dart code |
 | `make install-tools` | Install swag + golangci-lint |
 | `make init PROJECT=myapp` | Rename template module |
+| `make db-generate` | Generate sqlc Go code from SQL queries |
+| `make migrate-add NAME=your_migration` | Create new golang-migrate migration files |
 
 ## API Conventions
 
@@ -85,7 +93,7 @@ Do not declare a task complete until these pass.
 
 ## Flutter Conventions
 
-- State management: Riverpod (`flutter_riverpod`)
+- State management: Riverpod (`flutter_riverpod`) with `riverpod_generator`. Strictly use `@riverpod` annotations.
 - Routing: `go_router` (configured in `lib/router/app_router.dart`)
 - Design System: Use `AppTheme` (in `lib/theme/app_theme.dart`) for standard spacing and colors.
 - Forms: Use `flutter_form_builder` for complex inputs
@@ -101,10 +109,27 @@ Key vars: `API_PORT` (default 8080), `DB_PATH` (default data.db), `CORS_ORIGINS`
 
 ## Adding a New Resource
 
+### 1. Database (`sqlc` + `golang-migrate`)
+1. Create a new SQL migration in `internal/store/migrations/`: `make migrate-add NAME=your_table`.
+2. Define the schema `CREATE TABLE` / `DROP TABLE` in the `.up.sql` and `.down.sql` files.
+3. Create a query file in `internal/store/queries/your_model.sql` with `-- name: YourQuery :one` etc.
+4. Run `make db-generate` to generate the type-safe Go bindings in `internal/store/db/`.
+5. Create `internal/store/your_model.go` to wrap the `s.queries` calls and map to `model.YourModel`.
+
+### 2. Model (`internal/model/`)
 1. Add model to `internal/model/<resource>.go`
-2. Generate migration: `make migrate-add NAME=create_<resource>` and write the `.sql` files 
-3. Add store methods to `internal/store/<resource>.go`
-4. Add handlers to `internal/handler/<resource>.go` with swaggo annotations
-4. Register routes in `cmd/api/main.go`
-5. Add Flutter model, provider, and screen
-6. Run `make verify` before closing the task
+
+### 3. Handlers (`internal/handler/`)
+1. Add handlers to `internal/handler/<resource>.go` with swaggo annotations
+
+### 4. Routing (`cmd/api/`)
+1. Register routes in `cmd/api/main.go`
+
+### 5. Flutter UI (`flutter_app/`)
+1. Create a `lib/models/` file matching the Go JSON outputs using `.fromJson()`.
+2. Create a `lib/providers/` file utilizing `@riverpod` and `riverpod_generator`. Run `dart run build_runner build -d` to generate the `.g.dart` file. Use `ApiClient.instance` within the provider instead of dependency injection. Handle mutation errors by catching them and using `SnackBarUtil.showError(e.toString())`.
+3. Create the UI in `lib/screens/`. Hook up state with `ref.watch(yourProvider)`. Leverage `ErrorStateWidget` for the `error` state of `AsyncValue`.
+4. Link the new screen in `lib/router/app_router.dart`.
+
+### 6. Verification
+1. Run `make verify` before closing the task
