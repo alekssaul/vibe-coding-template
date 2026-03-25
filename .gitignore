@@ -7,8 +7,12 @@ bin/
 *.sqlite
 *.sqlite3
 
-# Environment secrets — NEVER commit .env
+# Environment secrets — NEVER commit the active .env
 .env
+# Allow environment templates
+!.env.example
+!.env.staging
+!.env.production
 
 # Go test cache
 *.test

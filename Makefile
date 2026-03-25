@@ -96,9 +96,11 @@ verify: verify-go test flutter-analyze ## Run all verifications (Go build + test
 # ── Setup ─────────────────────────────────────────────────────────────────────
 
 .PHONY: install-tools
-install-tools: ## Install required Go CLI tools
+install-tools: ## Install required Go CLI tools (swag, golangci-lint, migrate, air)
 	go install github.com/swaggo/swag/cmd/swag@latest
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	go install -tags 'sqlite3' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+	go install github.com/air-verse/air@latest
 
 .PHONY: init
 init: ## Rename template to your project: make init PROJECT=myapp

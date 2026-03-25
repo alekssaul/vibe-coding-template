@@ -1,24 +1,32 @@
 package store
 
-const schema = `
-CREATE TABLE IF NOT EXISTS api_keys (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    name       TEXT    NOT NULL,
-    key_hash   TEXT    NOT NULL UNIQUE,
-    permission TEXT    NOT NULL CHECK(permission IN ('read', 'write')),
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+import (
+	"embed"
+	"errors"
 
-CREATE TABLE IF NOT EXISTS items (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    name        TEXT    NOT NULL,
-    description TEXT    NOT NULL DEFAULT '',
-    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-`
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/sqlite"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
+)
+
+//go:embed migrations/*.sql
+var migrationFS embed.FS
 
 func (s *Store) migrate() error {
-	_, err := s.db.Exec(schema)
-	return err
+	d, err := iofs.New(migrationFS, "migrations")
+	if err != nil {
+		return err
+	}
+	driver, err := sqlite.WithInstance(s.db, &sqlite.Config{})
+	if err != nil {
+		return err
+	}
+	m, err := migrate.NewWithInstance("iofs", d, "sqlite", driver)
+	if err != nil {
+		return err
+	}
+	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		return err
+	}
+	return nil
 }
