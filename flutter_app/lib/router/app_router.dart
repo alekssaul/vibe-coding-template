@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_app/screens/items_screen.dart';
+// scaffold:imports — DO NOT REMOVE (used by `make scaffold`)
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -17,7 +18,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'home',
         builder: (context, state) => const ItemsScreen(),
       ),
-      // Future routes (e.g., auth, settings, item details) go here
+      // scaffold:routes — DO NOT REMOVE (used by `make scaffold`)
     ],
     errorBuilder: (context, state) => Scaffold(
       body: Center(child: Text('Route not found: ${state.uri.path}')),

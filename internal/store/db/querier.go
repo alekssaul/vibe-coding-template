@@ -11,6 +11,7 @@ import (
 type Querier interface {
 	CountAPIKeys(ctx context.Context) (int64, error)
 	CountItems(ctx context.Context) (int64, error)
+	CountItemsSearch(ctx context.Context, arg CountItemsSearchParams) (int64, error)
 	CreateAPIKey(ctx context.Context, arg CreateAPIKeyParams) (ApiKey, error)
 	CreateItem(ctx context.Context, arg CreateItemParams) (Item, error)
 	DeleteAPIKey(ctx context.Context, id int64) error
@@ -19,6 +20,7 @@ type Querier interface {
 	GetItem(ctx context.Context, id int64) (Item, error)
 	ListAPIKeys(ctx context.Context) ([]ApiKey, error)
 	ListItems(ctx context.Context, arg ListItemsParams) ([]Item, error)
+	SearchItems(ctx context.Context, arg SearchItemsParams) ([]Item, error)
 	UpdateItem(ctx context.Context, arg UpdateItemParams) (Item, error)
 }
 

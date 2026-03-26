@@ -1,0 +1,15 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - API_PORT=8080
+      - DB_PATH=/data/app.db
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5000
+    volumes:
+      - db-data:/data
+    restart: unless-stopped
+
+volumes:
+  db-data:

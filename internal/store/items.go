@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/alekssaul/template/internal/model"
 	"github.com/alekssaul/template/internal/store/db"
@@ -17,17 +18,37 @@ func mapItem(i db.Item) *model.Item {
 	}
 }
 
-// ListItems returns paginated items and the total count.
-func (s *Store) ListItems(ctx context.Context, limit, offset int) ([]*model.Item, int, error) {
-	total, err := s.queries.CountItems(ctx)
-	if err != nil {
-		return nil, 0, err
-	}
+// ListItems returns paginated items (with optional search) and the total count.
+func (s *Store) ListItems(ctx context.Context, limit, offset int, search string) ([]*model.Item, int, error) {
+	var total int64
+	var dbItems []db.Item
+	var err error
 
-	dbItems, err := s.queries.ListItems(ctx, db.ListItemsParams{
-		Limit:  int64(limit),
-		Offset: int64(offset),
-	})
+	if search != "" {
+		nullSearch := sql.NullString{String: search, Valid: true}
+		total, err = s.queries.CountItemsSearch(ctx, db.CountItemsSearchParams{
+			Column1: nullSearch,
+			Column2: nullSearch,
+		})
+		if err != nil {
+			return nil, 0, err
+		}
+		dbItems, err = s.queries.SearchItems(ctx, db.SearchItemsParams{
+			Column1: nullSearch,
+			Column2: nullSearch,
+			Limit:   int64(limit),
+			Offset:  int64(offset),
+		})
+	} else {
+		total, err = s.queries.CountItems(ctx)
+		if err != nil {
+			return nil, 0, err
+		}
+		dbItems, err = s.queries.ListItems(ctx, db.ListItemsParams{
+			Limit:  int64(limit),
+			Offset: int64(offset),
+		})
+	}
 	if err != nil {
 		return nil, 0, err
 	}

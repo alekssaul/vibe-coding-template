@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const countItems = `-- name: CountItems :one
@@ -15,6 +16,23 @@ SELECT COUNT(*) FROM items
 
 func (q *Queries) CountItems(ctx context.Context) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countItems)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countItemsSearch = `-- name: CountItemsSearch :one
+SELECT COUNT(*) FROM items
+WHERE name LIKE '%' || ? || '%' OR description LIKE '%' || ? || '%'
+`
+
+type CountItemsSearchParams struct {
+	Column1 sql.NullString `json:"column_1"`
+	Column2 sql.NullString `json:"column_2"`
+}
+
+func (q *Queries) CountItemsSearch(ctx context.Context, arg CountItemsSearchParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countItemsSearch, arg.Column1, arg.Column2)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -85,6 +103,54 @@ type ListItemsParams struct {
 
 func (q *Queries) ListItems(ctx context.Context, arg ListItemsParams) ([]Item, error) {
 	rows, err := q.db.QueryContext(ctx, listItems, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Item
+	for rows.Next() {
+		var i Item
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const searchItems = `-- name: SearchItems :many
+SELECT id, name, description, created_at, updated_at FROM items
+WHERE name LIKE '%' || ? || '%' OR description LIKE '%' || ? || '%'
+ORDER BY id DESC
+LIMIT ? OFFSET ?
+`
+
+type SearchItemsParams struct {
+	Column1 sql.NullString `json:"column_1"`
+	Column2 sql.NullString `json:"column_2"`
+	Limit   int64          `json:"limit"`
+	Offset  int64          `json:"offset"`
+}
+
+func (q *Queries) SearchItems(ctx context.Context, arg SearchItemsParams) ([]Item, error) {
+	rows, err := q.db.QueryContext(ctx, searchItems,
+		arg.Column1,
+		arg.Column2,
+		arg.Limit,
+		arg.Offset,
+	)
 	if err != nil {
 		return nil, err
 	}

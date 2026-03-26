@@ -1,0 +1,12 @@
+bin/
+*.db
+*.db-wal
+*.db-shm
+.env
+.env.*
+!.env.example
+flutter_app/
+docs/
+*.md
+.git/
+.github/

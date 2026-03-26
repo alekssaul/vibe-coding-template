@@ -65,7 +65,23 @@ Do not declare a task complete until these pass.
 | `make scaffold RESOURCE=name FIELDS="f:type,..."` | Generate full-stack CRUD (9 files) + auto-inject routes |
 | `make seed` | Seed database with dummy data and dev API keys |
 
-> **Scaffold rule**: Never manually write Go model/handler/store/SQL/Flutter model/provider/screen for a new CRUD resource. Always run `make scaffold` first. Only deviate when the resource has non-standard patterns.
+> **Scaffold rule**: Never manually write Go model/handler/store/SQL/Flutter model/provider/screen for a new CRUD resource. Always run `make scaffold` first. Routes are auto-injected into both `cmd/api/main.go` and `flutter_app/lib/router/app_router.dart`. Only deviate when the resource has non-standard patterns.
+
+## Search & Pagination
+
+All `List*` endpoints support `?limit=`, `?offset=`, and `?search=` query params. Search matches against `name` and `description` columns.
+
+## Deployment
+
+```bash
+docker compose up --build   # Local Docker
+```
+
+CI runs automatically on push/PR to `main` via `.github/workflows/ci.yml`.
+
+## Setup Screen
+
+The Flutter app gates on API key presence. On first launch, users see a Setup screen where they paste their key. The key is validated against `/health` and stored in `shared_preferences`.
 
 ## API Conventions
 

@@ -116,17 +116,22 @@ func main() {
 	fmt.Println()
 	fmt.Println("🎉 Scaffold complete! Next steps:")
 	fmt.Printf("  1. Run: make db-generate\n")
-	fmt.Printf("  2. Routes auto-injected into cmd/api/main.go ✅\n")
-	fmt.Printf("  3. Run: cd flutter_app && dart run build_runner build -d\n")
-	fmt.Printf("  4. Add the screen to flutter_app/lib/router/app_router.dart\n")
-	fmt.Printf("  5. Run: make verify\n")
+	fmt.Printf("  2. Run: cd flutter_app && dart run build_runner build -d\n")
+	fmt.Printf("  3. Run: make verify\n")
 
 	if err := injectRoutes(data); err != nil {
-		fmt.Printf("⚠️  Could not auto-inject routes: %v\n", err)
+		fmt.Printf("⚠️  Could not auto-inject Go routes: %v\n", err)
 		fmt.Println("   Add these routes manually to cmd/api/main.go:")
 		printRouteSnippet(data)
 	} else {
-		fmt.Println("✅ Routes injected into cmd/api/main.go")
+		fmt.Println("✅ Go routes injected into cmd/api/main.go")
+	}
+
+	if err := injectFlutterRoute(data); err != nil {
+		fmt.Printf("⚠️  Could not auto-inject Flutter route: %v\n", err)
+		fmt.Printf("   Add manually to flutter_app/lib/router/app_router.dart\n")
+	} else {
+		fmt.Println("✅ Flutter route injected into app_router.dart")
 	}
 }
 
@@ -287,6 +292,52 @@ func printRouteSnippet(data TemplateData) {
 		data.ResourcePlural, data.Resource,
 		data.ResourcePlural, data.Resource,
 	)
+}
+
+// ── Flutter Route Injection ──────────────────────────────────────────────────
+
+const flutterRouterPath = "flutter_app/lib/router/app_router.dart"
+const flutterImportMarker = "// scaffold:imports"
+const flutterRouteMarker = "// scaffold:routes"
+
+// injectFlutterRoute adds an import and a GoRoute entry to app_router.dart.
+func injectFlutterRoute(data TemplateData) error {
+	raw, err := os.ReadFile(flutterRouterPath)
+	if err != nil {
+		return fmt.Errorf("read %s: %w", flutterRouterPath, err)
+	}
+
+	content := string(raw)
+
+	// Idempotency: skip if already injected.
+	screenClass := data.Resource + "sScreen"
+	if strings.Contains(content, screenClass) {
+		return nil
+	}
+
+	importLine := fmt.Sprintf("import 'package:flutter_app/screens/%s_screen.dart';\n", data.ResourcePlural)
+	routeSnippet := fmt.Sprintf(
+		"      GoRoute(\n"+
+			"        path: '/%s',\n"+
+			"        name: '%s',\n"+
+			"        builder: (context, state) => const %sScreen(),\n"+
+			"      ),\n",
+		data.ResourcePlural, data.ResourcePlural, data.ResourcePluralPascal,
+	)
+
+	if !strings.Contains(content, flutterImportMarker) {
+		return fmt.Errorf("marker %q not found in %s", flutterImportMarker, flutterRouterPath)
+	}
+	if !strings.Contains(content, flutterRouteMarker) {
+		return fmt.Errorf("marker %q not found in %s", flutterRouteMarker, flutterRouterPath)
+	}
+
+	// Inject import before marker.
+	content = strings.Replace(content, flutterImportMarker, importLine+flutterImportMarker, 1)
+	// Inject route before marker.
+	content = strings.Replace(content, "      "+flutterRouteMarker, routeSnippet+"      "+flutterRouteMarker, 1)
+
+	return os.WriteFile(flutterRouterPath, []byte(content), 0o644)
 }
 
 // ── Go Templates ─────────────────────────────────────────────────────────────

@@ -16,8 +16,9 @@ import (
 //	@Description	Returns paginated list of items
 //	@Tags			items
 //	@Produce		json
-//	@Param			limit	query		int	false	"Max items (default 20, max 100)"
-//	@Param			offset	query		int	false	"Pagination offset (default 0)"
+//	@Param			limit	query		int		false	"Max items (default 20, max 100)"
+//	@Param			offset	query		int		false	"Pagination offset (default 0)"
+//	@Param			search	query		string	false	"Search name/description"
 //	@Security		ApiKeyAuth
 //	@Success		200	{object}	response.ListResponse
 //	@Failure		401	{object}	response.ErrorResponse
@@ -25,8 +26,9 @@ import (
 func (h *Handler) ListItems(w http.ResponseWriter, r *http.Request) {
 	limit := queryInt(r, "limit", 20, 100)
 	offset := queryInt(r, "offset", 0, -1)
+	search := r.URL.Query().Get("search")
 
-	items, total, err := h.store.ListItems(r.Context(), limit, offset)
+	items, total, err := h.store.ListItems(r.Context(), limit, offset, search)
 	if err != nil {
 		h.logger.ErrorContext(r.Context(), "list items", "error", err)
 		response.WriteError(w, http.StatusInternalServerError, "failed to list items", "INTERNAL_ERROR")

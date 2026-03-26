@@ -92,9 +92,10 @@ func main() {
 
 	// scaffold:routes — DO NOT REMOVE THIS COMMENT (used by `make scaffold` for auto-registration)
 
-	// Global middleware chain: CORS → RequestID → mux
+	// Global middleware chain: CORS → Logger → RequestID → mux
 	var root http.Handler = mux
 	root = middleware.RequestID(root)
+	root = middleware.Logger(logger)(root)
 	root = middleware.CORS(cfg.CORSOrigins)(root)
 
 	srv := &http.Server{

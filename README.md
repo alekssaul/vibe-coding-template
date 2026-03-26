@@ -77,12 +77,20 @@ Before asking your AI to write code, tell it to read `AGENTS.md`. It contains st
 | `make dev` | Start backend with `air` hot-reloader |
 | `make db-generate` | Regenerate Go types from `internal/store/queries/` |
 | `make seed` | Auto-migrate and seed dummy data and API keys |
-| `make scaffold RESOURCE=... FIELDS=...` | Generate full-stack CRUD (9 files) |
+| `make scaffold RESOURCE=... FIELDS=...` | Generate full-stack CRUD (9 files + auto-inject routes) |
 | `make verify` | Run Go build, Go tests, and Flutter analyzer |
 | `make test` | Run Go unit/integration tests |
 | `make init PROJECT=` | Rename the template across all files |
 | `make migrate-add NAME=` | Scaffold a new `.sql` migration file |
 | `make docs` | Generate Swagger/OpenAPI docs via `swag` |
+
+## Docker Deployment
+
+```bash
+docker compose up --build
+```
+
+The API will be available at `http://localhost:8080`. SQLite data persists via a Docker volume.
 
 ## License
 

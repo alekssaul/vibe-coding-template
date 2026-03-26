@@ -38,8 +38,13 @@ class ApiClient {
   ApiClient._();
   static final ApiClient instance = ApiClient._();
 
+  String? _overrideKey;
+
   String get _baseUrl => dotenv.env['API_BASE_URL'] ?? 'http://localhost:8080';
-  String get _apiKey => dotenv.env['API_KEY'] ?? '';
+  String get _apiKey => _overrideKey ?? dotenv.env['API_KEY'] ?? '';
+
+  /// Override the API key (used by setup screen).
+  void setApiKey(String key) => _overrideKey = key.isEmpty ? null : key;
 
   Map<String, String> get _headers => {
     'Content-Type': 'application/json',

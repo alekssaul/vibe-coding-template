@@ -7,8 +7,18 @@ SELECT * FROM items
 ORDER BY id DESC
 LIMIT ? OFFSET ?;
 
+-- name: SearchItems :many
+SELECT * FROM items
+WHERE name LIKE '%' || ? || '%' OR description LIKE '%' || ? || '%'
+ORDER BY id DESC
+LIMIT ? OFFSET ?;
+
 -- name: CountItems :one
 SELECT COUNT(*) FROM items;
+
+-- name: CountItemsSearch :one
+SELECT COUNT(*) FROM items
+WHERE name LIKE '%' || ? || '%' OR description LIKE '%' || ? || '%';
 
 -- name: CreateItem :one
 INSERT INTO items (name, description)
