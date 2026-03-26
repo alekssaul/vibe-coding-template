@@ -35,5 +35,8 @@ jobs:
       - name: Flutter pub get
         run: cd flutter_app && flutter pub get
 
+      - name: Create .env for analysis
+        run: cp flutter_app/.env.example flutter_app/.env
+
       - name: Flutter analyze
         run: cd flutter_app && flutter analyze
