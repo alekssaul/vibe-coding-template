@@ -102,6 +102,10 @@ flutter-build-android: ## Build Flutter Android APK
 flutter-analyze: ## Analyze Flutter/Dart code
 	cd flutter_app && flutter analyze
 
+.PHONY: flutter-apigen
+flutter-apigen: docs ## Generate typed Dart API client from OpenAPI spec
+	go run ./cmd/apigen
+
 .PHONY: verify-flutter
 verify-flutter: ## Verify Flutter builds (run after every Flutter change)
 	cd flutter_app && flutter build web --debug
@@ -125,11 +129,22 @@ install-tools: ## Install required Go CLI tools (swag, golangci-lint, migrate, a
 init: ## Rename template to your project: make init PROJECT=myapp
 	@if [ -z "$(PROJECT)" ]; then echo "Usage: make init PROJECT=myapp"; exit 1; fi
 	@echo "Renaming template → $(PROJECT)..."
+	@# Go source, go.mod, Makefile
 	@find . -type f \( -name "*.go" -o -name "*.mod" -o -name "Makefile" \) \
 	  | grep -v vendor \
 	  | xargs sed -i '' 's|alekssaul/template|alekssaul/$(PROJECT)|g'
+	@# Flutter pubspec
 	@sed -i '' 's|^name: flutter_app|name: $(PROJECT)|g' flutter_app/pubspec.yaml
 	@sed -i '' 's|^description: "A new Flutter project."|description: "$(PROJECT) — a CRUD app"|g' flutter_app/pubspec.yaml
+	@# Dart source files (package imports use flutter_app)
+	@find flutter_app/lib flutter_app/test -type f -name "*.dart" \
+	  | xargs sed -i '' 's|package:flutter_app/|package:$(PROJECT)/|g'
+	@# Docker, CI, docs
+	@sed -i '' 's|template|$(PROJECT)|g' Dockerfile docker-compose.yml
+	@sed -i '' 's|template|$(PROJECT)|g' .github/workflows/ci.yml
+	@sed -i '' 's|Template App|$(PROJECT)|g' flutter_app/lib/main.dart
+	@# Markdown docs
+	@sed -i '' 's|alekssaul/template|alekssaul/$(PROJECT)|g' AGENTS.md README.md
 	@go mod tidy
 	@[ -f .env ] || cp .env.example .env && echo "  ✓ created .env from .env.example"
 	@[ -f flutter_app/.env ] || cp flutter_app/.env.example flutter_app/.env && echo "  ✓ created flutter_app/.env from .env.example"

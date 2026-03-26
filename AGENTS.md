@@ -63,6 +63,7 @@ Do not declare a task complete until these pass.
 | `make db-generate` | Generate sqlc Go code from SQL queries |
 | `make migrate-add NAME=your_migration` | Create new golang-migrate migration files |
 | `make scaffold RESOURCE=name FIELDS="f:type,..."` | Generate full-stack CRUD (9 files) + auto-inject routes |
+| `make flutter-apigen` | Generate typed Dart API client from OpenAPI spec |
 | `make seed` | Seed database with dummy data and dev API keys |
 
 > **Scaffold rule**: Never manually write Go model/handler/store/SQL/Flutter model/provider/screen for a new CRUD resource. Always run `make scaffold` first. Routes are auto-injected into both `cmd/api/main.go` and `flutter_app/lib/router/app_router.dart`. Only deviate when the resource has non-standard patterns.
